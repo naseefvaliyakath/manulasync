@@ -36,7 +36,7 @@ class MyApp extends StatelessWidget {
         ProxyProvider2<AppDatabase, ApiService, SyncService>(
           create: (context) {
             final syncService = SyncService(
-              db: context.read<AppDatabase>(),
+              database: context.read<AppDatabase>(),
               api: context.read<ApiService>(),
             );
             syncService.startSync(
@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
             return syncService;
           },
           update: (_, db, api, previous) =>
-              previous ?? SyncService(db: db, api: api),
+              previous ?? SyncService(database: db, api: api),
           dispose: (_, sync) => sync.stopSync(),
         ),
 
@@ -63,9 +63,18 @@ class MyApp extends StatelessWidget {
               previous ?? InventoryProvider(db, sync),
         ),
 
-        // Category Provider (local-only)
-        ChangeNotifierProvider<CategoryProvider>(
-          create: (context) => CategoryProvider(context.read<AppDatabase>()),
+        // Category Provider
+        ChangeNotifierProxyProvider2<
+          AppDatabase,
+          SyncService,
+          CategoryProvider
+        >(
+          create: (context) => CategoryProvider(
+            context.read<AppDatabase>(),
+            context.read<SyncService>(),
+          ),
+          update: (context, db, sync, previous) =>
+              previous ?? CategoryProvider(db, sync),
         ),
       ],
       child: MaterialApp(

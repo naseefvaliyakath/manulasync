@@ -8,53 +8,38 @@ class ApiService {
 
   ApiService({required this.baseUrl});
 
-  // 🔹 Single sync
-  Future<ApiResponse<InventoryResponse>> singleSyncInventory(
-      Map<String, dynamic> item) async {
+  // 🔹 Generic batch sync for any table and response model
+  Future<ApiResponse<List<T>>> batchSyncGeneric<T>({
+    required String tablePath, // e.g., 'inventory', 'categories'
+    required List<Map<String, dynamic>> items,
+    required T Function(Map<String, dynamic>) itemFromJson,
+  }) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/inventory'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(item),
-    );
-
-    final jsonResponse = jsonDecode(response.body) as Map<String, dynamic>;
-
-    return ApiResponse.fromJson(
-      jsonResponse,
-          (json) => InventoryResponse.fromJson(json as Map<String, dynamic>),
-    );
-  }
-
-  // 🔹 Batch sync
-  Future<ApiResponse<List<InventoryResponse>>> batchSyncInventory(
-      List<Map<String, dynamic>> items) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/inventory/batch'),
+      Uri.parse('$baseUrl/$tablePath/batch'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'items': items}),
     );
 
     final jsonResponse = jsonDecode(response.body) as Map<String, dynamic>;
 
-    return ApiResponse.fromJson(
-      jsonResponse,
-          (json) {
-        // ✅ Expecting {"processedItems": [...], "errors": [...]}
-        final map = json as Map<String, dynamic>;
-        final list = (map['processedItems'] as List)
-            .map((e) => InventoryResponse.fromJson(e as Map<String, dynamic>))
-            .toList();
-        return list;
-      },
-    );
+    return ApiResponse.fromJson(jsonResponse, (data) {
+      final map = data as Map<String, dynamic>;
+      final list = (map['processedItems'] as List)
+          .map((e) => itemFromJson(e as Map<String, dynamic>))
+          .toList();
+      return list;
+    });
   }
 
-
-// 🔹 Downstream sync (fetch changes from server since last sync)
-  Future<ApiResponse<List<InventoryResponse>>> fetchServerChanges(String since) async {
-    final uri = Uri.parse('$baseUrl/inventory/changes').replace(
-      queryParameters: {'since': since},
-    );
+  // 🔹 Generic fetch changes for any table
+  Future<ApiResponse<List<T>>> fetchServerChangesGeneric<T>({
+    required String tablePath, // e.g., 'inventory', 'categories'
+    required String since,
+    required T Function(Map<String, dynamic>) itemFromJson,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/$tablePath/changes',
+    ).replace(queryParameters: {'since': since});
 
     final response = await http.get(
       uri,
@@ -63,16 +48,23 @@ class ApiService {
 
     final jsonResponse = jsonDecode(response.body) as Map<String, dynamic>;
 
-    return ApiResponse.fromJson(
-      jsonResponse,
-          (data) {
-        final map = data as Map<String, dynamic>;
-        final list = (map['changes'] as List)
-            .map((e) => InventoryResponse.fromJson(e as Map<String, dynamic>))
-            .toList();
-        return list;
-      },
-    );
+    return ApiResponse.fromJson(jsonResponse, (data) {
+      final map = data as Map<String, dynamic>;
+      final list = (map['changes'] as List)
+          .map((e) => itemFromJson(e as Map<String, dynamic>))
+          .toList();
+      return list;
+    });
   }
 
+  // 🔹 Downstream sync (fetch changes from server since last sync) - for backward compatibility
+  Future<ApiResponse<List<InventoryResponse>>> fetchServerChanges(
+    String since,
+  ) async {
+    return fetchServerChangesGeneric<InventoryResponse>(
+      tablePath: 'inventory',
+      since: since,
+      itemFromJson: (json) => InventoryResponse.fromJson(json),
+    );
+  }
 }

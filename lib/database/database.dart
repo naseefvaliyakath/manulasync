@@ -29,9 +29,10 @@ class AppDatabase extends _$AppDatabase {
     },
   );
 
-  /// Clear all data from the inventory table
+  /// Clear all data from both inventory and categories tables
   Future<void> clearAllData() async {
     await delete(inventoryItems).go();
+    await delete(categories).go();
   }
 
   /// Reset the database (clear all data and reset auto-increment)
