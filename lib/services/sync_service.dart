@@ -4,6 +4,7 @@ import '../database/database.dart' as db;
 import 'api_service.dart';
 import '../utils/network_checker.dart';
 import '../models/inventory_response.dart';
+import '../models/category_response.dart';
 import 'package:drift/drift.dart';
 
 /// Result of processing a server item during sync
@@ -379,20 +380,16 @@ class SyncService {
     );
   }
 
-  // 🔹 Process category item
-  Future<SyncResult> _processCategoryItem(
-    Map<String, dynamic> serverItem,
-  ) async {
-    debugPrint('🔄 Processing category item: ${serverItem['name']}');
-    final result = await _processServerItemGeneric<Map<String, dynamic>>(
+  // 🔹 Process category item - using CategoryResponse model
+  Future<SyncResult> _processCategoryItem(CategoryResponse serverItem) async {
+    debugPrint('🔄 Processing category item: ${serverItem.name}');
+    final result = await _processServerItemGeneric<CategoryResponse>(
       serverItem: serverItem,
-      uuid: serverItem['uuid'] as String,
-      name: serverItem['name'] as String,
-      updatedAt: _parseServerDate(
-        serverItem['updatedAt'],
-      ), // Parse the date properly
-      isDeleted: serverItem['isDeleted'] as bool? ?? false,
-      serverId: serverItem['categoryId']?.toString() ?? '',
+      uuid: serverItem.uuid,
+      name: serverItem.name,
+      updatedAt: serverItem.updatedAt,
+      isDeleted: serverItem.isDeleted,
+      serverId: serverItem.categoryId.toString(),
       table: _database.categories,
       createCompanion:
           ({
@@ -412,17 +409,17 @@ class SyncService {
             );
           },
     );
-    debugPrint('🔄 Category item processed: ${serverItem['name']} - $result');
+    debugPrint('🔄 Category item processed: ${serverItem.name} - $result');
     return result;
   }
 
-  // 🔹 Pull changes for categories
+  // 🔹 Pull changes for categories - using CategoryResponse model
   Future<void> pullChangesCategories() async {
     try {
       debugPrint('🔄 Starting category pull changes...');
-      final result = await pullChangesGeneric<Map<String, dynamic>>(
+      final result = await pullChangesGeneric<CategoryResponse>(
         tablePath: 'categories',
-        itemFromJson: (json) => json,
+        itemFromJson: (json) => CategoryResponse.fromJson(json),
         processItem: _processCategoryItem,
       );
       debugPrint('🔄 Category pull changes completed');

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/api_response.dart';
 import '../models/inventory_response.dart';
+import '../models/category_response.dart';
 
 class ApiService {
   final String baseUrl;
@@ -65,6 +66,17 @@ class ApiService {
       tablePath: 'inventory',
       since: since,
       itemFromJson: (json) => InventoryResponse.fromJson(json),
+    );
+  }
+
+  // 🔹 Downstream sync for categories - for backward compatibility
+  Future<ApiResponse<List<CategoryResponse>>> fetchServerChangesCategories(
+    String since,
+  ) async {
+    return fetchServerChangesGeneric<CategoryResponse>(
+      tablePath: 'categories',
+      since: since,
+      itemFromJson: (json) => CategoryResponse.fromJson(json),
     );
   }
 }
