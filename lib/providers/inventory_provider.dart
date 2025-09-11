@@ -81,9 +81,6 @@ class InventoryProvider with ChangeNotifier {
       );
 
       await loadItems();
-
-      // optional: trigger sync immediately
-      _syncService.batchSyncItems();
     } catch (e) {
       debugPrint('Error updating item: $e');
     }
@@ -110,9 +107,8 @@ class InventoryProvider with ChangeNotifier {
   // Method to manually trigger sync and refresh
   Future<void> manualSync() async {
     try {
-      await _syncService.batchSyncItems();
-      await _syncService.pullChanges();
-      await loadItems();
+      // The sync service handles all tables automatically
+      await loadItems(); // Just refresh the UI
     } catch (e) {
       debugPrint('Error during manual sync: $e');
     }

@@ -6,6 +6,7 @@ import '../utils/network_checker.dart';
 import '../models/inventory_response.dart';
 import '../models/category_response.dart';
 import 'package:drift/drift.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Table configuration for sync operations
 class TableConfig<TResponse, TTable extends Table, TData extends DataClass> {
@@ -46,9 +47,28 @@ class SyncService {
   // Table registry - add new tables here with minimal code
   late final List<TableConfig> _tableConfigs;
 
+  // 🔒 Simple safety mechanisms
+  late SharedPreferences _prefs;
+  final Map<String, DateTime> _lastSync = {};
+  final Map<String, List<Map<String, dynamic>>> _failedItems = {};
+
   SyncService({required db.AppDatabase database, required this.api})
     : _database = database {
     _initializeTableConfigs();
+    _initSafety();
+  }
+
+  Future<void> _initSafety() async {
+    _prefs = await SharedPreferences.getInstance();
+    // Load last sync times
+    for (final config in _tableConfigs) {
+      final saved = _prefs.getString('lastSync_${config.tablePath}');
+      _lastSync[config.tablePath] = saved != null
+          ? DateTime.parse(saved)
+          : DateTime(2025, 9, 2, 18, 0, 0);
+    }
+    // Load failed items for retry
+    await _loadFailedItems();
   }
 
   void _initializeTableConfigs() {
@@ -105,15 +125,12 @@ class SyncService {
   }
 
   void startSync({Duration interval = const Duration(seconds: 5)}) {
-    _timer = Timer.periodic(interval, (_) {
-      // Batch sync all tables
+    _timer = Timer.periodic(interval, (_) async {
       for (final config in _tableConfigs) {
-        _batchSyncTable(config);
+        await _batchSyncTable(config);
+        await _pullChangesTable(config);
       }
-      // Pull changes for all tables
-      for (final config in _tableConfigs) {
-        _pullChangesTable(config);
-      }
+      await _saveSyncTimes();
     });
   }
 
@@ -149,6 +166,9 @@ class SyncService {
       final connected = await NetworkChecker.isConnected;
       if (!connected) return;
 
+      // First, retry any previously failed items
+      await _retryFailedItems(config);
+
       final unsynced =
           await (_database.select(config.table)
                 ..where((t) => (t as dynamic).isSynced.equals(false))
@@ -167,33 +187,45 @@ class SyncService {
           );
       }).toList();
 
-      final resp = await api.batchSyncGeneric<Map<String, dynamic>>(
-        tablePath: config.tablePath,
-        items: items,
-        itemFromJson: (m) => m,
-      );
+      try {
+        final resp = await api.batchSyncGeneric<Map<String, dynamic>>(
+          tablePath: config.tablePath,
+          items: items,
+          itemFromJson: (m) => m,
+        );
 
-      if (resp.status != 201 || resp.data == null) return;
+        if (resp.status != 201 || resp.data == null) return;
 
-      await _database.batch((batch) {
-        for (final item in resp.data!) {
-          final uuid = item['uuid']?.toString();
-          final serverId = item['serverId']?.toString();
-          if (uuid == null || serverId == null) continue;
+        await _database.batch((batch) {
+          for (final item in resp.data!) {
+            final uuid = item['uuid']?.toString();
+            final serverId = item['serverId']?.toString();
+            if (uuid == null || serverId == null) continue;
 
-          final companion = _createCompanionForTable(
-            config.table.actualTableName,
-            serverId,
-          );
-          if (companion != null) {
-            batch.update(
-              config.table,
-              companion,
-              where: (tbl) => (tbl as dynamic).uuid.equals(uuid),
+            final companion = _createCompanionForTable(
+              config.table.actualTableName,
+              serverId,
             );
+            if (companion != null) {
+              batch.update(
+                config.table,
+                companion,
+                where: (tbl) => (tbl as dynamic).uuid.equals(uuid),
+              );
+            }
           }
-        }
-      });
+        });
+        _onDataChanged?.call();
+        // Clear failed items on success
+        _failedItems[config.tablePath]?.clear();
+        await _saveFailedItems();
+      } catch (e) {
+        // Queue failed items for retry
+        _failedItems[config.tablePath] = items;
+        await _saveFailedItems();
+        debugPrint('❌ Batch sync failed for ${config.tablePath}: $e');
+        rethrow;
+      }
     } catch (e) {
       debugPrint('❌ Batch sync failed for ${config.tablePath}: $e');
     }
@@ -202,37 +234,51 @@ class SyncService {
   // 🔹 ULTRA-SIMPLE: Generic pull changes for any table
   Future<void> _pullChangesTable(TableConfig config) async {
     try {
+      final lastSync =
+          _lastSync[config.tablePath] ?? DateTime(2025, 9, 2, 18, 0, 0);
       final apiResponse = await api.fetchServerChangesGeneric(
         tablePath: config.tablePath,
-        since: '2025-09-02T18:00:00.000Z',
+        since: lastSync.toIso8601String(),
         itemFromJson: config.fromJson,
       );
 
-      if (apiResponse.status != 200 || apiResponse.data?.isEmpty != false)
+      if (apiResponse.status != 200 || apiResponse.data?.isEmpty != false) {
         return;
-
-      bool hasChanges = false;
-      for (final serverItem in apiResponse.data!) {
-        try {
-          final result = await _processServerItem(config, serverItem);
-          if (result == SyncResult.inserted || result == SyncResult.updated) {
-            hasChanges = true;
-          }
-        } catch (e) {
-          debugPrint('❌ Error processing ${config.tablePath} item: $e');
-        }
       }
 
-      if (hasChanges) _onDataChanged?.call();
+      // Process all items in a single batch transaction for safety
+      bool hasChanges = false;
+      await _database.batch((batch) async {
+        for (final serverItem in apiResponse.data!) {
+          try {
+            final result = await _processServerItemInBatch(
+              config,
+              serverItem,
+              batch,
+            );
+            if (result == SyncResult.inserted || result == SyncResult.updated) {
+              hasChanges = true;
+            }
+          } catch (e) {
+            debugPrint('❌ Error processing ${config.tablePath} item: $e');
+          }
+        }
+      });
+
+      if (hasChanges) {
+        _lastSync[config.tablePath] = DateTime.now().toUtc();
+        _onDataChanged?.call();
+      }
     } catch (e) {
       debugPrint('❌ Pull changes failed for ${config.tablePath}: $e');
     }
   }
 
-  // 🔹 ULTRA-SIMPLE: Generic process server item
-  Future<SyncResult> _processServerItem(
+  // 🔹 ULTRA-SIMPLE: Generic process server item WITH BATCH TRANSACTION
+  Future<SyncResult> _processServerItemInBatch(
     TableConfig config,
     dynamic serverItem,
+    Batch batch,
   ) async {
     final uuid = config.getUuid(serverItem);
     final isDeleted = config.getIsDeleted(serverItem);
@@ -243,26 +289,27 @@ class SyncService {
 
     if (isDeleted) {
       if (existingItem != null) {
-        await (_database.delete(
+        batch.deleteWhere(
           config.table,
-        )..where((tbl) => (tbl as dynamic).uuid.equals(uuid))).go();
+          (tbl) => (tbl as dynamic).uuid.equals(uuid),
+        );
         return SyncResult.updated;
       }
       return SyncResult.skipped;
     }
 
     if (existingItem == null) {
-      await _database
-          .into(config.table)
-          .insert(config.createCompanion(serverItem));
+      batch.insert(config.table, config.createCompanion(serverItem));
       return SyncResult.inserted;
     }
 
     final updatedAt = _parseServerDate(config.getUpdatedAt(serverItem));
     if (updatedAt.isAfter((existingItem as dynamic).updatedAt.toUtc())) {
-      await (_database.update(config.table)
-            ..where((tbl) => (tbl as dynamic).uuid.equals(uuid)))
-          .write(config.createCompanion(serverItem));
+      batch.update(
+        config.table,
+        config.createCompanion(serverItem),
+        where: (tbl) => (tbl as dynamic).uuid.equals(uuid),
+      );
       return SyncResult.updated;
     }
 
@@ -287,24 +334,90 @@ class SyncService {
     }
   }
 
-  // 🔹 Backward compatibility methods (for existing code)
-  Future<void> batchSyncItems() async {
-    final config = _tableConfigs.firstWhere((c) => c.tablePath == 'inventory');
-    await _batchSyncTable(config);
+  // 🔒 Save sync times to persistent storage
+  Future<void> _saveSyncTimes() async {
+    try {
+      for (final entry in _lastSync.entries) {
+        await _prefs.setString(
+          'lastSync_${entry.key}',
+          entry.value.toIso8601String(),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error saving sync times: $e');
+    }
   }
 
-  Future<void> batchSyncCategories() async {
-    final config = _tableConfigs.firstWhere((c) => c.tablePath == 'categories');
-    await _batchSyncTable(config);
+  // 🔒 Load failed items from storage
+  Future<void> _loadFailedItems() async {
+    for (final config in _tableConfigs) {
+      final key = 'failed_${config.tablePath}';
+      final saved = _prefs.getStringList(key);
+      if (saved != null && saved.isNotEmpty) {
+        _failedItems[config.tablePath] = saved
+            .map(
+              (json) => Map<String, dynamic>.from(
+                Uri.splitQueryString(
+                  json.replaceAll('=', ':').replaceAll('&', ','),
+                ),
+              ),
+            )
+            .toList();
+      }
+    }
   }
 
-  Future<void> pullChanges() async {
-    final config = _tableConfigs.firstWhere((c) => c.tablePath == 'inventory');
-    await _pullChangesTable(config);
+  // 🔒 Save failed items to storage
+  Future<void> _saveFailedItems() async {
+    for (final entry in _failedItems.entries) {
+      final key = 'failed_${entry.key}';
+      if (entry.value.isEmpty) {
+        await _prefs.remove(key);
+      } else {
+        final jsonList = entry.value.map((item) => item.toString()).toList();
+        await _prefs.setStringList(key, jsonList);
+      }
+    }
   }
 
-  Future<void> pullChangesCategories() async {
-    final config = _tableConfigs.firstWhere((c) => c.tablePath == 'categories');
-    await _pullChangesTable(config);
+  // 🔒 Retry failed items for a specific table
+  Future<void> _retryFailedItems(TableConfig config) async {
+    final failed = _failedItems[config.tablePath];
+    if (failed == null || failed.isEmpty) return;
+
+    try {
+      final resp = await api.batchSyncGeneric<Map<String, dynamic>>(
+        tablePath: config.tablePath,
+        items: failed,
+        itemFromJson: (m) => m,
+      );
+
+      if (resp.status == 201 && resp.data != null) {
+        await _database.batch((batch) {
+          for (final item in resp.data!) {
+            final uuid = item['uuid']?.toString();
+            final serverId = item['serverId']?.toString();
+            if (uuid == null || serverId == null) continue;
+
+            final companion = _createCompanionForTable(
+              config.table.actualTableName,
+              serverId,
+            );
+            if (companion != null) {
+              batch.update(
+                config.table,
+                companion,
+                where: (tbl) => (tbl as dynamic).uuid.equals(uuid),
+              );
+            }
+          }
+        });
+        // Clear failed items on success
+        _failedItems[config.tablePath]?.clear();
+        await _saveFailedItems();
+      }
+    } catch (e) {
+      debugPrint('❌ Retry failed for ${config.tablePath}: $e');
+    }
   }
 }

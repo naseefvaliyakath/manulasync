@@ -71,9 +71,6 @@ class CategoryProvider with ChangeNotifier {
       );
 
       await loadCategories();
-
-      // optional: trigger sync immediately
-      _syncService.batchSyncCategories();
     } catch (e) {
       debugPrint('Error updating category: $e');
     }
@@ -100,9 +97,8 @@ class CategoryProvider with ChangeNotifier {
   // Method to manually trigger sync and refresh
   Future<void> manualSync() async {
     try {
-      await _syncService.batchSyncCategories();
-      await _syncService.pullChangesCategories();
-      await loadCategories();
+      // The sync service handles all tables automatically
+      await loadCategories(); // Just refresh the UI
     } catch (e) {
       debugPrint('Error during manual sync: $e');
     }

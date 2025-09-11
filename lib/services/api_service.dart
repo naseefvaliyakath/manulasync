@@ -57,26 +57,4 @@ class ApiService {
       return list;
     });
   }
-
-  // 🔹 Downstream sync (fetch changes from server since last sync) - for backward compatibility
-  Future<ApiResponse<List<InventoryResponse>>> fetchServerChanges(
-    String since,
-  ) async {
-    return fetchServerChangesGeneric<InventoryResponse>(
-      tablePath: 'inventory',
-      since: since,
-      itemFromJson: (json) => InventoryResponse.fromJson(json),
-    );
-  }
-
-  // 🔹 Downstream sync for categories - for backward compatibility
-  Future<ApiResponse<List<CategoryResponse>>> fetchServerChangesCategories(
-    String since,
-  ) async {
-    return fetchServerChangesGeneric<CategoryResponse>(
-      tablePath: 'categories',
-      since: since,
-      itemFromJson: (json) => CategoryResponse.fromJson(json),
-    );
-  }
 }
