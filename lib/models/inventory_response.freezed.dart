@@ -26,8 +26,9 @@ mixin _$InventoryResponse {
   String get name => throw _privateConstructorUsedError;
   int get quantity => throw _privateConstructorUsedError;
   String get price => throw _privateConstructorUsedError;
-  bool get isDeleted => throw _privateConstructorUsedError; // ✅ added
+  bool get isDeleted => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
+  String get serverId => throw _privateConstructorUsedError;
 
   /// Serializes this InventoryResponse to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -54,6 +55,7 @@ abstract class $InventoryResponseCopyWith<$Res> {
     String price,
     bool isDeleted,
     DateTime updatedAt,
+    String serverId,
   });
 }
 
@@ -79,6 +81,7 @@ class _$InventoryResponseCopyWithImpl<$Res, $Val extends InventoryResponse>
     Object? price = null,
     Object? isDeleted = null,
     Object? updatedAt = null,
+    Object? serverId = null,
   }) {
     return _then(
       _value.copyWith(
@@ -110,6 +113,10 @@ class _$InventoryResponseCopyWithImpl<$Res, $Val extends InventoryResponse>
                 ? _value.updatedAt
                 : updatedAt // ignore: cast_nullable_to_non_nullable
                       as DateTime,
+            serverId: null == serverId
+                ? _value.serverId
+                : serverId // ignore: cast_nullable_to_non_nullable
+                      as String,
           )
           as $Val,
     );
@@ -133,6 +140,7 @@ abstract class _$$InventoryResponseImplCopyWith<$Res>
     String price,
     bool isDeleted,
     DateTime updatedAt,
+    String serverId,
   });
 }
 
@@ -157,6 +165,7 @@ class __$$InventoryResponseImplCopyWithImpl<$Res>
     Object? price = null,
     Object? isDeleted = null,
     Object? updatedAt = null,
+    Object? serverId = null,
   }) {
     return _then(
       _$InventoryResponseImpl(
@@ -188,6 +197,10 @@ class __$$InventoryResponseImplCopyWithImpl<$Res>
             ? _value.updatedAt
             : updatedAt // ignore: cast_nullable_to_non_nullable
                   as DateTime,
+        serverId: null == serverId
+            ? _value.serverId
+            : serverId // ignore: cast_nullable_to_non_nullable
+                  as String,
       ),
     );
   }
@@ -204,6 +217,7 @@ class _$InventoryResponseImpl implements _InventoryResponse {
     required this.price,
     required this.isDeleted,
     required this.updatedAt,
+    required this.serverId,
   });
 
   factory _$InventoryResponseImpl.fromJson(Map<String, dynamic> json) =>
@@ -221,13 +235,14 @@ class _$InventoryResponseImpl implements _InventoryResponse {
   final String price;
   @override
   final bool isDeleted;
-  // ✅ added
   @override
   final DateTime updatedAt;
+  @override
+  final String serverId;
 
   @override
   String toString() {
-    return 'InventoryResponse(inventoryId: $inventoryId, uuid: $uuid, name: $name, quantity: $quantity, price: $price, isDeleted: $isDeleted, updatedAt: $updatedAt)';
+    return 'InventoryResponse(inventoryId: $inventoryId, uuid: $uuid, name: $name, quantity: $quantity, price: $price, isDeleted: $isDeleted, updatedAt: $updatedAt, serverId: $serverId)';
   }
 
   @override
@@ -245,7 +260,9 @@ class _$InventoryResponseImpl implements _InventoryResponse {
             (identical(other.isDeleted, isDeleted) ||
                 other.isDeleted == isDeleted) &&
             (identical(other.updatedAt, updatedAt) ||
-                other.updatedAt == updatedAt));
+                other.updatedAt == updatedAt) &&
+            (identical(other.serverId, serverId) ||
+                other.serverId == serverId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -259,6 +276,7 @@ class _$InventoryResponseImpl implements _InventoryResponse {
     price,
     isDeleted,
     updatedAt,
+    serverId,
   );
 
   /// Create a copy of InventoryResponse
@@ -287,6 +305,7 @@ abstract class _InventoryResponse implements InventoryResponse {
     required final String price,
     required final bool isDeleted,
     required final DateTime updatedAt,
+    required final String serverId,
   }) = _$InventoryResponseImpl;
 
   factory _InventoryResponse.fromJson(Map<String, dynamic> json) =
@@ -303,9 +322,11 @@ abstract class _InventoryResponse implements InventoryResponse {
   @override
   String get price;
   @override
-  bool get isDeleted; // ✅ added
+  bool get isDeleted;
   @override
   DateTime get updatedAt;
+  @override
+  String get serverId;
 
   /// Create a copy of InventoryResponse
   /// with the given fields replaced by the non-null parameter values.

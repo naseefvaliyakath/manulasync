@@ -26,6 +26,7 @@ mixin _$CategoryResponse {
   String get name => throw _privateConstructorUsedError;
   bool get isDeleted => throw _privateConstructorUsedError;
   DateTime get updatedAt => throw _privateConstructorUsedError;
+  String get serverId => throw _privateConstructorUsedError;
 
   /// Serializes this CategoryResponse to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -50,6 +51,7 @@ abstract class $CategoryResponseCopyWith<$Res> {
     String name,
     bool isDeleted,
     DateTime updatedAt,
+    String serverId,
   });
 }
 
@@ -73,6 +75,7 @@ class _$CategoryResponseCopyWithImpl<$Res, $Val extends CategoryResponse>
     Object? name = null,
     Object? isDeleted = null,
     Object? updatedAt = null,
+    Object? serverId = null,
   }) {
     return _then(
       _value.copyWith(
@@ -96,6 +99,10 @@ class _$CategoryResponseCopyWithImpl<$Res, $Val extends CategoryResponse>
                 ? _value.updatedAt
                 : updatedAt // ignore: cast_nullable_to_non_nullable
                       as DateTime,
+            serverId: null == serverId
+                ? _value.serverId
+                : serverId // ignore: cast_nullable_to_non_nullable
+                      as String,
           )
           as $Val,
     );
@@ -117,6 +124,7 @@ abstract class _$$CategoryResponseImplCopyWith<$Res>
     String name,
     bool isDeleted,
     DateTime updatedAt,
+    String serverId,
   });
 }
 
@@ -139,6 +147,7 @@ class __$$CategoryResponseImplCopyWithImpl<$Res>
     Object? name = null,
     Object? isDeleted = null,
     Object? updatedAt = null,
+    Object? serverId = null,
   }) {
     return _then(
       _$CategoryResponseImpl(
@@ -162,6 +171,10 @@ class __$$CategoryResponseImplCopyWithImpl<$Res>
             ? _value.updatedAt
             : updatedAt // ignore: cast_nullable_to_non_nullable
                   as DateTime,
+        serverId: null == serverId
+            ? _value.serverId
+            : serverId // ignore: cast_nullable_to_non_nullable
+                  as String,
       ),
     );
   }
@@ -176,6 +189,7 @@ class _$CategoryResponseImpl implements _CategoryResponse {
     required this.name,
     required this.isDeleted,
     required this.updatedAt,
+    required this.serverId,
   });
 
   factory _$CategoryResponseImpl.fromJson(Map<String, dynamic> json) =>
@@ -191,10 +205,12 @@ class _$CategoryResponseImpl implements _CategoryResponse {
   final bool isDeleted;
   @override
   final DateTime updatedAt;
+  @override
+  final String serverId;
 
   @override
   String toString() {
-    return 'CategoryResponse(categoryId: $categoryId, uuid: $uuid, name: $name, isDeleted: $isDeleted, updatedAt: $updatedAt)';
+    return 'CategoryResponse(categoryId: $categoryId, uuid: $uuid, name: $name, isDeleted: $isDeleted, updatedAt: $updatedAt, serverId: $serverId)';
   }
 
   @override
@@ -209,13 +225,22 @@ class _$CategoryResponseImpl implements _CategoryResponse {
             (identical(other.isDeleted, isDeleted) ||
                 other.isDeleted == isDeleted) &&
             (identical(other.updatedAt, updatedAt) ||
-                other.updatedAt == updatedAt));
+                other.updatedAt == updatedAt) &&
+            (identical(other.serverId, serverId) ||
+                other.serverId == serverId));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, categoryId, uuid, name, isDeleted, updatedAt);
+  int get hashCode => Object.hash(
+    runtimeType,
+    categoryId,
+    uuid,
+    name,
+    isDeleted,
+    updatedAt,
+    serverId,
+  );
 
   /// Create a copy of CategoryResponse
   /// with the given fields replaced by the non-null parameter values.
@@ -241,6 +266,7 @@ abstract class _CategoryResponse implements CategoryResponse {
     required final String name,
     required final bool isDeleted,
     required final DateTime updatedAt,
+    required final String serverId,
   }) = _$CategoryResponseImpl;
 
   factory _CategoryResponse.fromJson(Map<String, dynamic> json) =
@@ -256,6 +282,8 @@ abstract class _CategoryResponse implements CategoryResponse {
   bool get isDeleted;
   @override
   DateTime get updatedAt;
+  @override
+  String get serverId;
 
   /// Create a copy of CategoryResponse
   /// with the given fields replaced by the non-null parameter values.

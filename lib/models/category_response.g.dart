@@ -14,6 +14,7 @@ _$CategoryResponseImpl _$$CategoryResponseImplFromJson(
   name: json['name'] as String,
   isDeleted: json['isDeleted'] as bool,
   updatedAt: DateTime.parse(json['updatedAt'] as String),
+  serverId: json['serverId'] as String,
 );
 
 Map<String, dynamic> _$$CategoryResponseImplToJson(
@@ -24,4 +25,5 @@ Map<String, dynamic> _$$CategoryResponseImplToJson(
   'name': instance.name,
   'isDeleted': instance.isDeleted,
   'updatedAt': instance.updatedAt.toIso8601String(),
+  'serverId': instance.serverId,
 };

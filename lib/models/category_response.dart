@@ -11,6 +11,7 @@ class CategoryResponse with _$CategoryResponse {
     required String name,
     required bool isDeleted,
     required DateTime updatedAt,
+    required String serverId, // ✅ added serverId field
   }) = _CategoryResponse;
 
   factory CategoryResponse.fromJson(Map<String, dynamic> json) =>

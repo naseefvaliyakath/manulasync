@@ -16,6 +16,7 @@ _$InventoryResponseImpl _$$InventoryResponseImplFromJson(
   price: json['price'] as String,
   isDeleted: json['isDeleted'] as bool,
   updatedAt: DateTime.parse(json['updatedAt'] as String),
+  serverId: json['serverId'] as String,
 );
 
 Map<String, dynamic> _$$InventoryResponseImplToJson(
@@ -28,4 +29,5 @@ Map<String, dynamic> _$$InventoryResponseImplToJson(
   'price': instance.price,
   'isDeleted': instance.isDeleted,
   'updatedAt': instance.updatedAt.toIso8601String(),
+  'serverId': instance.serverId,
 };

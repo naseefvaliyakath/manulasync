@@ -11,8 +11,9 @@ class InventoryResponse with _$InventoryResponse {
     required String name,
     required int quantity,
     required String price,
-    required bool isDeleted,          // ✅ added
-    required DateTime updatedAt,      // ✅ added
+    required bool isDeleted,
+    required DateTime updatedAt,
+    required String serverId, // ✅ added serverId field
   }) = _InventoryResponse;
 
   factory InventoryResponse.fromJson(Map<String, dynamic> json) =>
