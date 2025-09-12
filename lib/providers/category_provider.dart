@@ -59,6 +59,7 @@ class CategoryProvider with ChangeNotifier {
     required int localId,
     required String name,
   }) async {
+    print(currentDateAndTime.datetime);
     try {
       await (_database.update(
         _database.categories,

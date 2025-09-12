@@ -85,6 +85,17 @@ class $InventoryItemsTable extends InventoryItems
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _lastSyncedAtMeta = const VerificationMeta(
+    'lastSyncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+    'last_synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isDeletedMeta = const VerificationMeta(
     'isDeleted',
   );
@@ -124,6 +135,7 @@ class $InventoryItemsTable extends InventoryItems
     quantity,
     price,
     updatedAt,
+    lastSyncedAt,
     isDeleted,
     isSynced,
   ];
@@ -189,6 +201,15 @@ class $InventoryItemsTable extends InventoryItems
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+        _lastSyncedAtMeta,
+        lastSyncedAt.isAcceptableOrUnknown(
+          data['last_synced_at']!,
+          _lastSyncedAtMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_deleted')) {
       context.handle(
         _isDeletedMeta,
@@ -242,6 +263,10 @@ class $InventoryItemsTable extends InventoryItems
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_synced_at'],
+      ),
       isDeleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_deleted'],
@@ -267,6 +292,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
   final int quantity;
   final double price;
   final DateTime updatedAt;
+  final DateTime? lastSyncedAt;
   final bool isDeleted;
   final bool isSynced;
   const InventoryItem({
@@ -277,6 +303,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
     required this.quantity,
     required this.price,
     required this.updatedAt,
+    this.lastSyncedAt,
     required this.isDeleted,
     required this.isSynced,
   });
@@ -292,6 +319,9 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
     map['quantity'] = Variable<int>(quantity);
     map['price'] = Variable<double>(price);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['is_synced'] = Variable<bool>(isSynced);
     return map;
@@ -308,6 +338,9 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
       quantity: Value(quantity),
       price: Value(price),
       updatedAt: Value(updatedAt),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
       isDeleted: Value(isDeleted),
       isSynced: Value(isSynced),
     );
@@ -326,6 +359,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
       quantity: serializer.fromJson<int>(json['quantity']),
       price: serializer.fromJson<double>(json['price']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
     );
@@ -341,6 +375,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
       'quantity': serializer.toJson<int>(quantity),
       'price': serializer.toJson<double>(price),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'isSynced': serializer.toJson<bool>(isSynced),
     };
@@ -354,6 +389,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
     int? quantity,
     double? price,
     DateTime? updatedAt,
+    Value<DateTime?> lastSyncedAt = const Value.absent(),
     bool? isDeleted,
     bool? isSynced,
   }) => InventoryItem(
@@ -364,6 +400,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
     quantity: quantity ?? this.quantity,
     price: price ?? this.price,
     updatedAt: updatedAt ?? this.updatedAt,
+    lastSyncedAt: lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     isSynced: isSynced ?? this.isSynced,
   );
@@ -376,6 +413,9 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
       price: data.price.present ? data.price.value : this.price,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
     );
@@ -391,6 +431,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
           ..write('quantity: $quantity, ')
           ..write('price: $price, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced')
           ..write(')'))
@@ -406,6 +447,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
     quantity,
     price,
     updatedAt,
+    lastSyncedAt,
     isDeleted,
     isSynced,
   );
@@ -420,6 +462,7 @@ class InventoryItem extends DataClass implements Insertable<InventoryItem> {
           other.quantity == this.quantity &&
           other.price == this.price &&
           other.updatedAt == this.updatedAt &&
+          other.lastSyncedAt == this.lastSyncedAt &&
           other.isDeleted == this.isDeleted &&
           other.isSynced == this.isSynced);
 }
@@ -432,6 +475,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
   final Value<int> quantity;
   final Value<double> price;
   final Value<DateTime> updatedAt;
+  final Value<DateTime?> lastSyncedAt;
   final Value<bool> isDeleted;
   final Value<bool> isSynced;
   const InventoryItemsCompanion({
@@ -442,6 +486,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
     this.quantity = const Value.absent(),
     this.price = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
   });
@@ -453,6 +498,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
     required int quantity,
     required double price,
     this.updatedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
   }) : uuid = Value(uuid),
@@ -467,6 +513,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
     Expression<int>? quantity,
     Expression<double>? price,
     Expression<DateTime>? updatedAt,
+    Expression<DateTime>? lastSyncedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? isSynced,
   }) {
@@ -478,6 +525,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
       if (quantity != null) 'quantity': quantity,
       if (price != null) 'price': price,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (isSynced != null) 'is_synced': isSynced,
     });
@@ -491,6 +539,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
     Value<int>? quantity,
     Value<double>? price,
     Value<DateTime>? updatedAt,
+    Value<DateTime?>? lastSyncedAt,
     Value<bool>? isDeleted,
     Value<bool>? isSynced,
   }) {
@@ -502,6 +551,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
       quantity: quantity ?? this.quantity,
       price: price ?? this.price,
       updatedAt: updatedAt ?? this.updatedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       isSynced: isSynced ?? this.isSynced,
     );
@@ -531,6 +581,9 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
+    }
     if (isDeleted.present) {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
@@ -550,6 +603,7 @@ class InventoryItemsCompanion extends UpdateCompanion<InventoryItem> {
           ..write('quantity: $quantity, ')
           ..write('price: $price, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced')
           ..write(')'))
@@ -619,6 +673,17 @@ class $CategoriesTable extends Categories
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _lastSyncedAtMeta = const VerificationMeta(
+    'lastSyncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastSyncedAt = GeneratedColumn<DateTime>(
+    'last_synced_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isDeletedMeta = const VerificationMeta(
     'isDeleted',
   );
@@ -656,6 +721,7 @@ class $CategoriesTable extends Categories
     serverId,
     name,
     updatedAt,
+    lastSyncedAt,
     isDeleted,
     isSynced,
   ];
@@ -705,6 +771,15 @@ class $CategoriesTable extends Categories
         updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
       );
     }
+    if (data.containsKey('last_synced_at')) {
+      context.handle(
+        _lastSyncedAtMeta,
+        lastSyncedAt.isAcceptableOrUnknown(
+          data['last_synced_at']!,
+          _lastSyncedAtMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_deleted')) {
       context.handle(
         _isDeletedMeta,
@@ -750,6 +825,10 @@ class $CategoriesTable extends Categories
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
       )!,
+      lastSyncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_synced_at'],
+      ),
       isDeleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_deleted'],
@@ -773,6 +852,7 @@ class Category extends DataClass implements Insertable<Category> {
   final String? serverId;
   final String name;
   final DateTime updatedAt;
+  final DateTime? lastSyncedAt;
   final bool isDeleted;
   final bool isSynced;
   const Category({
@@ -781,6 +861,7 @@ class Category extends DataClass implements Insertable<Category> {
     this.serverId,
     required this.name,
     required this.updatedAt,
+    this.lastSyncedAt,
     required this.isDeleted,
     required this.isSynced,
   });
@@ -794,6 +875,9 @@ class Category extends DataClass implements Insertable<Category> {
     }
     map['name'] = Variable<String>(name);
     map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || lastSyncedAt != null) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt);
+    }
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['is_synced'] = Variable<bool>(isSynced);
     return map;
@@ -808,6 +892,9 @@ class Category extends DataClass implements Insertable<Category> {
           : Value(serverId),
       name: Value(name),
       updatedAt: Value(updatedAt),
+      lastSyncedAt: lastSyncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAt),
       isDeleted: Value(isDeleted),
       isSynced: Value(isSynced),
     );
@@ -824,6 +911,7 @@ class Category extends DataClass implements Insertable<Category> {
       serverId: serializer.fromJson<String?>(json['serverId']),
       name: serializer.fromJson<String>(json['name']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      lastSyncedAt: serializer.fromJson<DateTime?>(json['lastSyncedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       isSynced: serializer.fromJson<bool>(json['isSynced']),
     );
@@ -837,6 +925,7 @@ class Category extends DataClass implements Insertable<Category> {
       'serverId': serializer.toJson<String?>(serverId),
       'name': serializer.toJson<String>(name),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'lastSyncedAt': serializer.toJson<DateTime?>(lastSyncedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'isSynced': serializer.toJson<bool>(isSynced),
     };
@@ -848,6 +937,7 @@ class Category extends DataClass implements Insertable<Category> {
     Value<String?> serverId = const Value.absent(),
     String? name,
     DateTime? updatedAt,
+    Value<DateTime?> lastSyncedAt = const Value.absent(),
     bool? isDeleted,
     bool? isSynced,
   }) => Category(
@@ -856,6 +946,7 @@ class Category extends DataClass implements Insertable<Category> {
     serverId: serverId.present ? serverId.value : this.serverId,
     name: name ?? this.name,
     updatedAt: updatedAt ?? this.updatedAt,
+    lastSyncedAt: lastSyncedAt.present ? lastSyncedAt.value : this.lastSyncedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     isSynced: isSynced ?? this.isSynced,
   );
@@ -866,6 +957,9 @@ class Category extends DataClass implements Insertable<Category> {
       serverId: data.serverId.present ? data.serverId.value : this.serverId,
       name: data.name.present ? data.name.value : this.name,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      lastSyncedAt: data.lastSyncedAt.present
+          ? data.lastSyncedAt.value
+          : this.lastSyncedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       isSynced: data.isSynced.present ? data.isSynced.value : this.isSynced,
     );
@@ -879,6 +973,7 @@ class Category extends DataClass implements Insertable<Category> {
           ..write('serverId: $serverId, ')
           ..write('name: $name, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced')
           ..write(')'))
@@ -892,6 +987,7 @@ class Category extends DataClass implements Insertable<Category> {
     serverId,
     name,
     updatedAt,
+    lastSyncedAt,
     isDeleted,
     isSynced,
   );
@@ -904,6 +1000,7 @@ class Category extends DataClass implements Insertable<Category> {
           other.serverId == this.serverId &&
           other.name == this.name &&
           other.updatedAt == this.updatedAt &&
+          other.lastSyncedAt == this.lastSyncedAt &&
           other.isDeleted == this.isDeleted &&
           other.isSynced == this.isSynced);
 }
@@ -914,6 +1011,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<String?> serverId;
   final Value<String> name;
   final Value<DateTime> updatedAt;
+  final Value<DateTime?> lastSyncedAt;
   final Value<bool> isDeleted;
   final Value<bool> isSynced;
   const CategoriesCompanion({
@@ -922,6 +1020,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     this.serverId = const Value.absent(),
     this.name = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
   });
@@ -931,6 +1030,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     this.serverId = const Value.absent(),
     required String name,
     this.updatedAt = const Value.absent(),
+    this.lastSyncedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.isSynced = const Value.absent(),
   }) : uuid = Value(uuid),
@@ -941,6 +1041,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Expression<String>? serverId,
     Expression<String>? name,
     Expression<DateTime>? updatedAt,
+    Expression<DateTime>? lastSyncedAt,
     Expression<bool>? isDeleted,
     Expression<bool>? isSynced,
   }) {
@@ -950,6 +1051,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
       if (serverId != null) 'server_id': serverId,
       if (name != null) 'name': name,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (lastSyncedAt != null) 'last_synced_at': lastSyncedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (isSynced != null) 'is_synced': isSynced,
     });
@@ -961,6 +1063,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Value<String?>? serverId,
     Value<String>? name,
     Value<DateTime>? updatedAt,
+    Value<DateTime?>? lastSyncedAt,
     Value<bool>? isDeleted,
     Value<bool>? isSynced,
   }) {
@@ -970,6 +1073,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
       serverId: serverId ?? this.serverId,
       name: name ?? this.name,
       updatedAt: updatedAt ?? this.updatedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       isSynced: isSynced ?? this.isSynced,
     );
@@ -993,6 +1097,9 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
+    if (lastSyncedAt.present) {
+      map['last_synced_at'] = Variable<DateTime>(lastSyncedAt.value);
+    }
     if (isDeleted.present) {
       map['is_deleted'] = Variable<bool>(isDeleted.value);
     }
@@ -1010,6 +1117,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
           ..write('serverId: $serverId, ')
           ..write('name: $name, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('lastSyncedAt: $lastSyncedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('isSynced: $isSynced')
           ..write(')'))
@@ -1041,6 +1149,7 @@ typedef $$InventoryItemsTableCreateCompanionBuilder =
       required int quantity,
       required double price,
       Value<DateTime> updatedAt,
+      Value<DateTime?> lastSyncedAt,
       Value<bool> isDeleted,
       Value<bool> isSynced,
     });
@@ -1053,6 +1162,7 @@ typedef $$InventoryItemsTableUpdateCompanionBuilder =
       Value<int> quantity,
       Value<double> price,
       Value<DateTime> updatedAt,
+      Value<DateTime?> lastSyncedAt,
       Value<bool> isDeleted,
       Value<bool> isSynced,
     });
@@ -1098,6 +1208,11 @@ class $$InventoryItemsTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1156,6 +1271,11 @@ class $$InventoryItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
     builder: (column) => ColumnOrderings(column),
@@ -1196,6 +1316,11 @@ class $$InventoryItemsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
@@ -1244,6 +1369,7 @@ class $$InventoryItemsTableTableManager
                 Value<int> quantity = const Value.absent(),
                 Value<double> price = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> lastSyncedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
               }) => InventoryItemsCompanion(
@@ -1254,6 +1380,7 @@ class $$InventoryItemsTableTableManager
                 quantity: quantity,
                 price: price,
                 updatedAt: updatedAt,
+                lastSyncedAt: lastSyncedAt,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
               ),
@@ -1266,6 +1393,7 @@ class $$InventoryItemsTableTableManager
                 required int quantity,
                 required double price,
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> lastSyncedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
               }) => InventoryItemsCompanion.insert(
@@ -1276,6 +1404,7 @@ class $$InventoryItemsTableTableManager
                 quantity: quantity,
                 price: price,
                 updatedAt: updatedAt,
+                lastSyncedAt: lastSyncedAt,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
               ),
@@ -1311,6 +1440,7 @@ typedef $$CategoriesTableCreateCompanionBuilder =
       Value<String?> serverId,
       required String name,
       Value<DateTime> updatedAt,
+      Value<DateTime?> lastSyncedAt,
       Value<bool> isDeleted,
       Value<bool> isSynced,
     });
@@ -1321,6 +1451,7 @@ typedef $$CategoriesTableUpdateCompanionBuilder =
       Value<String?> serverId,
       Value<String> name,
       Value<DateTime> updatedAt,
+      Value<DateTime?> lastSyncedAt,
       Value<bool> isDeleted,
       Value<bool> isSynced,
     });
@@ -1356,6 +1487,11 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1404,6 +1540,11 @@ class $$CategoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isDeleted => $composableBuilder(
     column: $table.isDeleted,
     builder: (column) => ColumnOrderings(column),
@@ -1438,6 +1579,11 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastSyncedAt => $composableBuilder(
+    column: $table.lastSyncedAt,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<bool> get isDeleted =>
       $composableBuilder(column: $table.isDeleted, builder: (column) => column);
@@ -1479,6 +1625,7 @@ class $$CategoriesTableTableManager
                 Value<String?> serverId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> lastSyncedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
               }) => CategoriesCompanion(
@@ -1487,6 +1634,7 @@ class $$CategoriesTableTableManager
                 serverId: serverId,
                 name: name,
                 updatedAt: updatedAt,
+                lastSyncedAt: lastSyncedAt,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
               ),
@@ -1497,6 +1645,7 @@ class $$CategoriesTableTableManager
                 Value<String?> serverId = const Value.absent(),
                 required String name,
                 Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> lastSyncedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<bool> isSynced = const Value.absent(),
               }) => CategoriesCompanion.insert(
@@ -1505,6 +1654,7 @@ class $$CategoriesTableTableManager
                 serverId: serverId,
                 name: name,
                 updatedAt: updatedAt,
+                lastSyncedAt: lastSyncedAt,
                 isDeleted: isDeleted,
                 isSynced: isSynced,
               ),

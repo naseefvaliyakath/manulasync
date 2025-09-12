@@ -89,6 +89,12 @@ class CategoryDbViewScreen extends StatelessWidget {
         ),
         DataColumn(
           label: Text(
+            'lastSyncedAt',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        DataColumn(
+          label: Text(
             'isDeleted',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
@@ -169,6 +175,29 @@ class CategoryDbViewScreen extends StatelessWidget {
                 child: Text(
                   _formatDateTime(item.updatedAt),
                   style: const TextStyle(fontFamily: 'monospace', fontSize: 10),
+                ),
+              ),
+            ),
+            DataCell(
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: item.lastSyncedAt != null
+                      ? Colors.amber.withValues(alpha: 0.1)
+                      : Colors.grey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  item.lastSyncedAt != null
+                      ? _formatDateTime(item.lastSyncedAt!)
+                      : 'NULL',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 10,
+                    fontStyle: item.lastSyncedAt == null
+                        ? FontStyle.italic
+                        : FontStyle.normal,
+                  ),
                 ),
               ),
             ),

@@ -11,7 +11,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -25,6 +25,14 @@ class AppDatabase extends _$AppDatabase {
       if (from < 3) {
         await customStatement('DROP TABLE IF EXISTS categories');
         await m.createTable(categories);
+      }
+      if (from < 4) {
+        await customStatement(
+          'ALTER TABLE inventory_items ADD COLUMN last_synced_at INTEGER',
+        );
+        await customStatement(
+          'ALTER TABLE categories ADD COLUMN last_synced_at INTEGER',
+        );
       }
     },
   );
@@ -67,6 +75,7 @@ class InventoryItems extends Table {
   RealColumn get price => real()();
 
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
@@ -82,6 +91,7 @@ class Categories extends Table {
   TextColumn get serverId => text().nullable()();
   TextColumn get name => text()();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get lastSyncedAt => dateTime().nullable()();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   BoolColumn get isSynced => boolean().withDefault(const Constant(false))();
 
